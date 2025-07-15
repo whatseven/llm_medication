@@ -7,7 +7,7 @@ from neo4j_diagnose import neo4j_diagnosis_search
 
 def test_neo4j_diagnosis():
     """测试Neo4j诊断搜索功能"""
-    test_diseases = ["病毒性肝炎", "肺炎", "高血压"]
+    test_diseases = ["产气杆菌肠炎", "肺炎", "高血压"]
     
     print("=== Neo4j诊断信息测试 ===\n")
     

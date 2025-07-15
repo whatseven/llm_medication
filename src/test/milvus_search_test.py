@@ -21,6 +21,7 @@ def test_search():
         print("-" * 40)
         
         results = search_similar_diseases(query)
+        print(results)
         
         if results:
             print(f"找到 {len(results)} 条结果:")
