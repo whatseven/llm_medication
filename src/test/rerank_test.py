@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+
 from src.rerank.reranker import rerank_diseases
 
 # 测试数据 - 使用你提供的Milvus搜索结果

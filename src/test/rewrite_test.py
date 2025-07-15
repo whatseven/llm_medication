@@ -28,8 +28,9 @@ def test_symptom_extraction():
         print(f"测试案例{i} - {case['name']}：")
         try:
             symptoms = process_dialog_symptoms(case['dialog'])
-            print(f"提取的症状：{symptoms}")
-            print(f"症状数量：{len(symptoms)}\n")
+            print(symptoms)
+            #print(f"提取的症状：{symptoms}")
+            #print(f"症状数量：{len(symptoms)}\n")
         except Exception as e:
             print(f"测试失败：{e}\n")
 
