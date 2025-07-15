@@ -1,7 +1,7 @@
 import requests
 import json
 from src.model.config import MODELS, DEFAULT_MODEL
-from src.model.prompt import DOCTOR_SYSTEM_PROMPT, DOCTOR_USER_PROMPT_TEMPLATE
+from src.model.prompt import DOCTOR_SYSTEM_PROMPT
 
 def diagnose(user_input: str, vector_results: list, graph_data: dict, model_name: str = DEFAULT_MODEL) -> str:
     """
@@ -30,12 +30,9 @@ def diagnose(user_input: str, vector_results: list, graph_data: dict, model_name
         for key, value in graph_data.items():
             graph_info += f"{key}：{value}\n\n"
     
-    # 构建用户提示词
-    user_prompt = DOCTOR_USER_PROMPT_TEMPLATE.format(
-        user_input=user_input,
-        vector_results=vector_info,
-        graph_data=graph_info
-    )
+    # 手动替换占位符来避免与JSON格式冲突
+    system_prompt = DOCTOR_SYSTEM_PROMPT.replace("{vector_results}", vector_info)
+    system_prompt = system_prompt.replace("{graph_data}", graph_info)
     
     # 获取模型配置
     model_config = MODELS.get(model_name, MODELS[DEFAULT_MODEL])
@@ -49,13 +46,13 @@ def diagnose(user_input: str, vector_results: list, graph_data: dict, model_name
     data = {
         "model": model_config["model_name"],
         "messages": [
-            {"role": "system", "content": DOCTOR_SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt}
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_input}
         ],
         "temperature": 0.1,
         "max_tokens": 1000
     }
-    
+
     try:
         response = requests.post(
             f"{model_config['base_url']}/chat/completions",

@@ -1,6 +1,6 @@
 from openai import OpenAI
 from src.model.config import MODELS, DEFAULT_MODEL
-from src.model.prompt import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
+from src.model.prompt import SYSTEM_PROMPT
 from src.utils.extract_diagnosis import extract_diagnosis_result
 
 def analyze_diagnosis(user_input, disease_results, model_name=None):
@@ -36,18 +36,15 @@ def analyze_diagnosis(user_input, disease_results, model_name=None):
             disease_info += f"   症状：{disease['symptom']}\n"
             disease_info += f"   相似度：{disease['similarity_score']:.3f}\n\n"
         
-        # 构建用户提示词
-        user_prompt = USER_PROMPT_TEMPLATE.format(
-            user_input=user_input,
-            disease_results=disease_info
-        )
+        # 手动替换占位符来避免与JSON格式冲突
+        system_prompt = SYSTEM_PROMPT.replace("{disease_results}", disease_info)
         
         # 调用大模型
         response = client.chat.completions.create(
             model=model_config["model_name"],
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_input}
             ],
             stream=False
         )
