@@ -11,13 +11,14 @@ from src.model.analyzer import analyze_diagnosis
 from src.search.neo4j_diagnose import neo4j_diagnosis_search
 from src.model.doctor import diagnose
 
-def medical_diagnosis_pipeline(user_input: str, model_name: str = None) -> str:
+def medical_diagnosis_pipeline(user_input: str, model_name: str = None, disease_list_file: str = None) -> str:
     """
     完整的医疗诊断流程
     
     Args:
         user_input (str): 用户输入的症状描述
         model_name (str): 使用的模型名称，可选
+        disease_list_file (str): 疾病列表文件路径，可选
     
     Returns:
         str: 最终诊断结果
@@ -36,7 +37,7 @@ def medical_diagnosis_pipeline(user_input: str, model_name: str = None) -> str:
         
         # 步骤2: 向量搜索
         print("\n步骤2: 向量搜索...")
-        milvus_results = search_similar_diseases(symptoms_text, top_k=3)
+        milvus_results = search_similar_diseases(symptoms_text, top_k=5)
         print(f"搜索到 {len(milvus_results)} 个疾病")
         
         if not milvus_results:
@@ -87,7 +88,7 @@ def medical_diagnosis_pipeline(user_input: str, model_name: str = None) -> str:
         
         # 步骤6: 最终诊断
         print("\n步骤6: 最终诊断...")
-        diagnosis_result = diagnose(user_input, filtered_results, graph_data, model_name)
+        diagnosis_result = diagnose(user_input, filtered_results, graph_data, model_name, disease_list_file)
         
         print("\n诊断完成!")
         return diagnosis_result

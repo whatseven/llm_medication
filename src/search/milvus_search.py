@@ -7,7 +7,7 @@ from pymilvus import connections, db, Collection
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'embedding'))
 from embedding import get_embedding
 
-def search_similar_diseases(query: str, top_k: int = 3) -> List[Dict[str, Any]]:
+def search_similar_diseases(query: str, top_k: int = 5) -> List[Dict[str, Any]]:
     """
     在Milvus中搜索相似疾病
     
