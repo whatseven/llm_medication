@@ -95,3 +95,46 @@ if __name__ == "__main__":
     else:
         print("无效选择，默认使用交互式测试")
         test_diagnosis()
+
+def test_iteration_diagnosis():
+    """
+    测试带有R1专家评估的诊断流程
+    """
+    print("=== R1专家评估诊断流程测试 ===")
+    
+    # 测试用例
+    test_case = "我最近腹泻很严重，伴有腹痛，肛门也很疼"
+    
+    print(f"测试症状: {test_case}")
+    print(f"{'='*80}")
+    
+    try:
+        # 调用带有iteration逻辑的诊断流程
+        result = medical_diagnosis_pipeline(test_case)
+        
+        print(f"\n{'='*80}")
+        print("最终诊断结果:")
+        print(f"{'='*80}")
+        print(result)
+        print(f"{'='*80}")
+        
+    except Exception as e:
+        print(f"R1诊断测试失败: {str(e)}")
+
+if __name__ == "__main__":
+    print("选择测试模式:")
+    print("1. 交互式测试(可多次输入)")
+    print("2. 单次测试(预设用例或自定义)")
+    print("3. R1专家评估流程测试")
+    
+    mode = input("请选择模式(1/2/3): ").strip()
+    
+    if mode == '1':
+        test_diagnosis()
+    elif mode == '2':
+        test_with_custom_input()
+    elif mode == '3':
+        test_iteration_diagnosis()
+    else:
+        print("无效选择，默认使用交互式测试")
+        test_diagnosis()

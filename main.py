@@ -10,18 +10,114 @@ from src.rerank.reranker import rerank_diseases
 from src.model.analyzer import analyze_diagnosis
 from src.search.neo4j_diagnose import neo4j_diagnosis_search
 from src.model.doctor import diagnose
+from src.model.rewrite_disease_cause import rewrite_disease_cause
+from src.model.iteration import iterative_diagnose
 
-def medical_diagnosis_pipeline(user_input: str, model_name: str = None, disease_list_file: str = None) -> str:
+def parse_neo4j_result(neo4j_text: str) -> dict:
     """
-    完整的医疗诊断流程
+    解析图数据库返回的格式化文本
+    
+    Args:
+        neo4j_text: 图数据库返回的格式化文本
+    
+    Returns:
+        dict: 解析后的结构化信息
+    """
+    result = {
+        'disease_name': '',
+        'cause': '',
+        'department': '',
+        'complications': ''
+    }
+    
+    try:
+        lines = neo4j_text.strip().split('\n')
+        current_field = None
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            if line.startswith('疾病名称：'):
+                result['disease_name'] = line.replace('疾病名称：', '').strip()
+            elif line.startswith('疾病病因：'):
+                current_field = 'cause'
+                result['cause'] = line.replace('疾病病因：', '').strip()
+            elif line.startswith('治疗科室：'):
+                current_field = 'department'
+                result['department'] = line.replace('治疗科室：', '').strip()
+            elif line.startswith('并发症：'):
+                current_field = 'complications'
+                result['complications'] = line.replace('并发症：', '').strip()
+            elif current_field and line:
+                # 续行内容
+                result[current_field] += line
+                
+    except Exception as e:
+        print(f"解析图数据库结果出错: {str(e)}")
+        
+    return result
+
+def process_graph_data_with_simplified_cause(disease_name: str, neo4j_text: str, model_name: str = None) -> str:
+    """
+    处理图数据库信息，简化病因并重新组装
+    
+    Args:
+        disease_name: 疾病名称
+        neo4j_text: 图数据库原始返回文本
+        model_name: 用于病因简化的模型名称
+    
+    Returns:
+        str: 处理后的图数据库信息，如果处理失败返回空字符串
+    """
+    try:
+        # 解析原始信息
+        parsed_data = parse_neo4j_result(neo4j_text)
+        
+        if not parsed_data['cause']:
+            print(f"警告: 疾病 {disease_name} 没有病因信息")
+            return ""
+        
+        # 简化病因
+        simplified_cause = rewrite_disease_cause(
+            raw_cause=parsed_data['cause'],
+            disease_name=disease_name,
+            model_name=model_name
+        )
+        
+        if not simplified_cause:
+            print(f"警告: 疾病 {disease_name} 病因简化失败，跳过该疾病")
+            return ""
+        
+        # 重新组装信息
+        result_text = f"疾病名称：{disease_name}\n\n"
+        result_text += f"疾病病因：{simplified_cause}\n\n"
+        
+        if parsed_data['department']:
+            result_text += f"治疗科室：{parsed_data['department']}\n\n"
+        
+        if parsed_data['complications']:
+            result_text += f"并发症：{parsed_data['complications']}\n\n"
+        
+        return result_text.strip()
+        
+    except Exception as e:
+        print(f"处理疾病 {disease_name} 的图数据库信息出错: {str(e)}，跳过该疾病")
+        return ""
+
+def medical_diagnosis_pipeline_single(user_input: str, model_name: str = None, disease_list_file: str = None, top_k: int = 5, silent_mode: bool = False) -> dict:
+    """
+    单次医疗诊断流程
     
     Args:
         user_input (str): 用户输入的症状描述
         model_name (str): 使用的模型名称，可选
         disease_list_file (str): 疾病列表文件路径，可选
+        top_k (int): 向量搜索返回的数量
     
     Returns:
-        str: 最终诊断结果
+        dict: 包含诊断结果和中间数据的字典
     """
     try:
         print("开始医疗诊断流程...")
@@ -36,12 +132,18 @@ def medical_diagnosis_pipeline(user_input: str, model_name: str = None, disease_
         symptoms_text = ' '.join(symptoms) if symptoms else user_input
         
         # 步骤2: 向量搜索
-        print("\n步骤2: 向量搜索...")
-        milvus_results = search_similar_diseases(symptoms_text, top_k=5)
+        print(f"\n步骤2: 向量搜索(top_k={top_k})...")
+        milvus_results = search_similar_diseases(symptoms_text, top_k=top_k)
         print(f"搜索到 {len(milvus_results)} 个疾病")
         
         if not milvus_results:
-            return "未找到相关疾病信息，请咨询专业医生。"
+            return {
+                "diagnosis": "未找到相关疾病信息，请咨询专业医生。",
+                "symptoms": symptoms,
+                "vector_results": [],
+                "graph_data": {},
+                "success": False
+            }
         
         # 步骤3: 重排序
         print("\n步骤3: 重排序...")
@@ -63,19 +165,30 @@ def medical_diagnosis_pipeline(user_input: str, model_name: str = None, disease_
         if need_more_info and target_diseases:
             print(f"\n需要更多信息，目标疾病: {target_diseases}")
             
-            # 步骤5: 图数据库查询
-            print("\n步骤5: 图数据库查询...")
+            # 步骤5: 图数据库查询和病因简化
+            print("\n步骤5: 图数据库查询和病因简化...")
             graph_data = {}
             for disease_name in target_diseases:
                 print(f"查询疾病: {disease_name}")
                 disease_info = neo4j_diagnosis_search(disease_name)
                 if disease_info:
-                    graph_data[disease_name] = disease_info
+                    # 处理图数据库信息，简化病因
+                    processed_info = process_graph_data_with_simplified_cause(
+                        disease_name, disease_info, model_name
+                    )
+                    if processed_info:
+                        graph_data[disease_name] = processed_info
+                        print(f"✓ 疾病 {disease_name} 信息处理完成")
+                    else:
+                        print(f"✗ 疾病 {disease_name} 信息处理失败，跳过")
+                else:
+                    print(f"✗ 疾病 {disease_name} 未找到图数据库信息")
             
-            # 过滤向量库结果，只保留目标疾病
+            # 过滤向量库结果，只保留成功处理的目标疾病
+            successfully_processed_diseases = list(graph_data.keys())
             filtered_results = []
             for result in reranked_results:
-                if result.get('name') in target_diseases:
+                if result.get('name') in successfully_processed_diseases:
                     filtered_results.append(result)
             
             print(f"过滤后的向量库结果: {len(filtered_results)} 个")
@@ -90,13 +203,175 @@ def medical_diagnosis_pipeline(user_input: str, model_name: str = None, disease_
         print("\n步骤6: 最终诊断...")
         diagnosis_result = diagnose(user_input, filtered_results, graph_data, model_name, disease_list_file)
         
-        print("\n诊断完成!")
-        return diagnosis_result
+        print("\n单次诊断完成!")
+        return {
+            "diagnosis": diagnosis_result,
+            "symptoms": symptoms,
+            "vector_results": filtered_results,
+            "graph_data": graph_data,
+            "success": True
+        }
         
     except Exception as e:
         error_msg = f"诊断流程出错: {str(e)}"
         print(error_msg)
-        return error_msg
+        return {
+            "diagnosis": error_msg,
+            "symptoms": [],
+            "vector_results": [],
+            "graph_data": {},
+            "success": False
+        }
+
+def medical_diagnosis_pipeline(user_input: str, model_name: str = None, disease_list_file: str = None, silent_mode: bool = False) -> str:
+    """
+    带有R1专家评估和重试机制的完整医疗诊断流程
+    
+    Args:
+        user_input (str): 用户输入的症状描述
+        model_name (str): 使用的模型名称，可选
+        disease_list_file (str): 疾病列表文件路径，可选
+        silent_mode (bool): 静默模式，True时减少日志输出，用于批量评估
+    
+    Returns:
+        str: 最终诊断结果
+    """
+    max_retries = 3
+    top_k_values = [5, 7, 10]  # 重试时的top_k值
+    rejection_count = 0  # 记录被驳回次数
+    
+    if not silent_mode:
+        print("=== 开始带有R1专家评估的医疗诊断流程 ===")
+    
+    for attempt in range(max_retries):
+        current_top_k = top_k_values[min(attempt, len(top_k_values) - 1)]
+        if not silent_mode:
+            print(f"\n{'='*60}")
+            print(f"第 {attempt + 1} 次诊断尝试 (top_k={current_top_k})")
+            print(f"{'='*60}")
+        
+        try:
+            # 执行单次诊断流程
+            result = medical_diagnosis_pipeline_single(
+                user_input=user_input,
+                model_name=model_name,
+                disease_list_file=disease_list_file,
+                top_k=current_top_k,
+                silent_mode=silent_mode
+            )
+            
+            if not result["success"]:
+                if not silent_mode:
+                    print(f"第 {attempt + 1} 次诊断失败，原因: {result['diagnosis']}")
+                continue
+            
+            # 准备R1专家评估的参数
+            symptoms_str = ' '.join(result["symptoms"]) if result["symptoms"] else user_input
+            vector_results_str = ""
+            for i, disease in enumerate(result["vector_results"], 1):
+                vector_results_str += f"{i}. {disease.get('name', 'Unknown')}\n"
+                vector_results_str += f"   描述：{disease.get('desc', 'No description')}\n"
+                vector_results_str += f"   症状：{disease.get('symptom', 'No symptoms')}\n"
+                vector_results_str += f"   相似度：{disease.get('similarity_score', 0):.3f}\n\n"
+            
+            graph_data_str = ""
+            for disease_name, disease_info in result["graph_data"].items():
+                graph_data_str += f"{disease_info}\n\n"
+            
+            # R1专家评估
+            if not silent_mode:
+                print(f"\n{'='*40}")
+                print("R1专家评估诊断质量...")
+                print(f"{'='*40}")
+            
+            expert_review = iterative_diagnose(
+                symptoms=symptoms_str,
+                vector_results=vector_results_str,
+                graph_data=graph_data_str,
+                doctor_diagnosis=result["diagnosis"],
+                disease_list_file=disease_list_file
+            )
+            
+            if not silent_mode:
+                print(f"R1专家评估结果: {'通过' if expert_review['is_correct'] else '驳回'}")
+            
+            if expert_review["is_correct"]:
+                if not silent_mode:
+                    print(f"\n{'='*60}")
+                    print("R1专家确认诊断正确，流程结束")
+                    print(f"{'='*60}")
+                return result["diagnosis"]
+            else:
+                rejection_count += 1
+                if attempt == max_retries - 1:  # 这是最后一次尝试
+                    if not silent_mode:
+                        print("R1专家认为诊断有误，已达到最大重试次数，将启用R1直接诊断...")
+                    break  # 跳出循环，进入R1直接诊断
+                else:
+                    if not silent_mode:
+                        print(f"R1专家认为诊断有误，准备第 {attempt + 2} 次重试...")
+                
+        except Exception as e:
+            if not silent_mode:
+                print(f"第 {attempt + 1} 次诊断过程出错: {str(e)}")
+            continue
+    
+    # 3次重试都失败或被驳回，让R1直接诊断
+    if not silent_mode:
+        print(f"\n{'='*60}")
+        print(f"知识库诊断方式已无法满足要求 (共被驳回{rejection_count}次)，启用R1直接诊断模式")
+        print(f"{'='*60}")
+    
+    try:
+        from src.model.config import MODELS
+        from openai import OpenAI
+        
+        # 直接用R1进行诊断
+        model_config = MODELS["deepseek-r1"]
+        client = OpenAI(
+            api_key=model_config["api_key"],
+            base_url=model_config["base_url"]
+        )
+        
+        # 读取疾病列表（如果提供）
+        disease_list_str = ""
+        if disease_list_file and os.path.exists(disease_list_file):
+            with open(disease_list_file, 'r', encoding='utf-8') as f:
+                diseases = [line.strip() for line in f.readlines() if line.strip()]
+                disease_list_str = f"可选疾病列表：{', '.join(diseases)}"
+        
+        direct_prompt = f"""你是一位顶级的医疗诊断专家。知识库检索多次失败，现在需要你直接基于医学知识进行诊断。
+
+患者症状：{user_input}
+{disease_list_str}
+
+请基于你的医学知识，仔细分析患者症状，给出最可能的诊断：
+- 仔细分析症状组合
+- 考虑疾病的常见性和症状匹配度
+- 如果提供了疾病列表，必须从中选择
+
+请将最终诊断放在<final_diagnosis>标签中：
+<final_diagnosis>
+{{"diseases": ["疾病名称"]}}
+</final_diagnosis>"""
+
+        response = client.chat.completions.create(
+            model=model_config["model_name"],
+            messages=[
+                {"role": "system", "content": "你是一位资深医疗专家，需要进行深度推理分析。"},
+                {"role": "user", "content": direct_prompt}
+            ],
+            temperature=0.1,
+            stream=False
+        )
+        
+        content = response.choices[0].message.content
+        if not silent_mode:
+            print("R1直接诊断完成")
+        return content
+        
+    except Exception as e:
+        return f"R1直接诊断也失败了: {str(e)}"
 
 if __name__ == "__main__":
     # 示例调用

@@ -8,7 +8,7 @@ def neo4j_diagnosis_search(disease_name: str) -> str:
         disease_name: 疾病名称
         
     Returns:
-        str: 格式化的诊断相关信息文本
+        str: 格式化的诊断相关信息文本（包含完整病因、治疗科室、并发症）
     """
     try:
         # 连接Neo4j数据库
@@ -25,14 +25,6 @@ def neo4j_diagnosis_search(disease_name: str) -> str:
             return ""
         
         disease_info = disease_result[0]
-        
-        # 查询检查项目
-        check_query = f"""
-        MATCH (d:疾病{{名称:'{disease_name}'}})-[:疾病所需检查]->(check:检查项目)
-        RETURN check.名称 AS 检查名称
-        """
-        check_result = client.run(check_query).data()
-        checks = [record['检查名称'] for record in check_result]
         
         # 查询治疗科室
         department_query = f"""
@@ -53,15 +45,10 @@ def neo4j_diagnosis_search(disease_name: str) -> str:
         # 格式化输出
         result_text = f"疾病名称：{disease_name}\n\n"
         
-        # 疾病病因（前500字符）
+        # 疾病病因（完整版本，后续通过大模型精简）
         cause = disease_info.get('病因', '')
         if cause:
-            cause_text = cause[:500] if len(cause) > 500 else cause
-            result_text += f"疾病病因：{cause_text}\n\n"
-        
-        # 检查项目
-        if checks:
-            result_text += f"检查项目：{' '.join(checks)}\n\n"
+            result_text += f"疾病病因：{cause}\n\n"
         
         # 治疗科室
         if departments:

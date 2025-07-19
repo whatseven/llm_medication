@@ -11,7 +11,24 @@ from openai import OpenAI
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
 
 from src.model.config import MODELS, DEFAULT_MODEL
-from src.model.prompt import CRITICAL_DOCTOR_EVALUATION_PROMPT
+
+# 简化版批判性医生诊断质量评估提示词模板（不包含AI诊断过程）
+SIMPLIFIED_CRITICAL_DOCTOR_EVALUATION_PROMPT = """作为医疗评估专家，请评估预测的疾病与真实疾病的匹配程度。
+判断标准:
+只要预测的疾病中有至少一个与真实疾病接近或相同，就算准确。具体而言：
+1. 如果预测的疾病包含真实的疾病，算准确
+2. 如果预测的疾病是真实疾病的别称或上位概念，算准确
+3. 如果预测的疾病与真实疾病在医学上高度相关（如并发症或一种是另一种的特定类型），算准确
+
+**输入信息：**
+- 医患对话：{input_dialog}
+- 原始标签：{ground_truth_disease}
+- AI诊断结果：{predicted_diseases}
+
+请将最终评估结果放在<r>标签中：
+<r>1</r> 表示诊断正确/合理
+<r>0</r> 表示诊断错误/不合理
+"""
 
 def load_evaluation_results(file_path: str) -> List[Dict[str, Any]]:
     """
@@ -97,11 +114,10 @@ def call_llm_evaluation(item: Dict[str, Any], model_name: str = DEFAULT_MODEL) -
         )
         
         # 格式化提示词
-        prompt = CRITICAL_DOCTOR_EVALUATION_PROMPT.format(
+        prompt = SIMPLIFIED_CRITICAL_DOCTOR_EVALUATION_PROMPT.format(
             input_dialog=item['input_dialog'],
             ground_truth_disease=item['ground_truth_disease'],
-            predicted_diseases=item['predicted_diseases'],
-            raw_diagnosis=item['raw_diagnosis']
+            predicted_diseases=item['predicted_diseases']
         )
         
         # 调用大模型
@@ -171,7 +187,7 @@ def process_single_evaluation(item: Dict[str, Any], model_name: str = DEFAULT_MO
             'status': 'error'
         }
 
-def evaluate_diagnosis_quality(input_file: str, output_file: str, max_workers: int = 30, 
+def evaluate_diagnosis_quality(input_file: str, output_file: str, max_workers: int = 50, 
                              limit: int = None, model_name: str = DEFAULT_MODEL):
     """
     评估诊断质量
@@ -301,9 +317,9 @@ def analyze_evaluation_results(results: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 if __name__ == "__main__":
     # 配置文件路径
-    input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/DiaMed/evaluation_results5.jsonl"
+    input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/DiaMed/evaluation_results6.jsonl"
     output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/DiaMed"
-    output_file = os.path.join(output_dir, "quality_evaluation_results5.jsonl")
+    output_file = os.path.join(output_dir, "quality_evaluation_results6.jsonl")
     
     # 确保输出目录存在
     os.makedirs(output_dir, exist_ok=True)
@@ -326,10 +342,10 @@ if __name__ == "__main__":
         max_workers = 5
     elif choice == '3':
         limit = 50
-        max_workers = 30
+        max_workers = 50
     elif choice == '4':
         limit = None
-        max_workers = 30
+        max_workers = 50
     else:
         print("无效选择，使用测试模式")
         limit = 5

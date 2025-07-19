@@ -6,10 +6,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'search'))
 from neo4j_diagnose import neo4j_diagnosis_search
 
 def test_neo4j_diagnosis():
-    """测试Neo4j诊断搜索功能"""
+    """测试Neo4j诊断搜索功能 - 优化版本（完整病因、治疗科室、并发症）"""
     test_diseases = ["产气杆菌肠炎", "肺炎", "高血压"]
     
-    print("=== Neo4j诊断信息测试 ===\n")
+    print("=== Neo4j诊断信息测试（优化版本）===\n")
+    print("测试字段：完整病因、治疗科室、并发症\n")
     
     for disease in test_diseases:
         print(f"测试疾病: {disease}")

@@ -99,9 +99,9 @@ def process_single_item(item: Dict[str, Any], disease_list_file: str = None) -> 
         # 使用original_dialog
         dialog_text = preprocess_dialog(item['original_dialog'])
         
-        # 调用诊断流程，传入疾病列表文件
+        # 调用诊断流程，传入疾病列表文件，使用静默模式减少日志输出
         start_time = time.time()
-        diagnosis_result = medical_diagnosis_pipeline(dialog_text, disease_list_file=disease_list_file)
+        diagnosis_result = medical_diagnosis_pipeline(dialog_text, disease_list_file=disease_list_file, silent_mode=True)
         end_time = time.time()
         
         # 提取疾病信息
@@ -134,7 +134,7 @@ def process_single_item(item: Dict[str, Any], disease_list_file: str = None) -> 
             'status': 'error'
         }
 
-def evaluate_dataset(input_file: str, output_file: str, max_workers: int = 5, limit: int = None, disease_list_file: str = None):
+def evaluate_dataset(input_file: str, output_file: str, max_workers: int = 30, limit: int = None, disease_list_file: str = None):
     """
     评估整个数据集
     
@@ -246,7 +246,7 @@ if __name__ == "__main__":
     # 配置文件路径
     input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/DiaMed/test.txt"
     output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/DiaMed"
-    output_file = os.path.join(output_dir, "evaluation_results2.jsonl")
+    output_file = os.path.join(output_dir, "evaluation_results6.jsonl")
     
     # 疾病列表文件路径配置（可选）
     # 设置为 None 表示不使用疾病列表约束
@@ -263,13 +263,13 @@ if __name__ == "__main__":
     
     if choice == '1':
         limit = 10
-        max_workers = 3
+        max_workers = 5
     elif choice == '2':
         limit = 50
-        max_workers = 5
+        max_workers = 20
     elif choice == '3':
         limit = None
-        max_workers = 5
+        max_workers = 30
     else:
         print("无效选择，使用测试模式")
         limit = 10
