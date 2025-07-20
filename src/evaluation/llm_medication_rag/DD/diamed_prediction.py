@@ -110,7 +110,7 @@ def call_llm_evaluation(item: Dict[str, Any], model_name: str = DEFAULT_MODEL) -
             messages=[
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.1,
+            temperature=0.3,
             max_tokens=2000
         )
         
@@ -171,7 +171,7 @@ def process_single_evaluation(item: Dict[str, Any], model_name: str = DEFAULT_MO
             'status': 'error'
         }
 
-def evaluate_diagnosis_quality(input_file: str, output_file: str, max_workers: int = 30, 
+def evaluate_diagnosis_quality(input_file: str, output_file: str, max_workers: int = 100, 
                              limit: int = None, model_name: str = DEFAULT_MODEL):
     """
     评估诊断质量
@@ -301,9 +301,9 @@ def analyze_evaluation_results(results: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 if __name__ == "__main__":
     # 配置文件路径
-    input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/DiaMed/evaluation_results5.jsonl"
+    input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/DiaMed/evaluation_results1.jsonl"
     output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/DiaMed"
-    output_file = os.path.join(output_dir, "quality_evaluation_results5.jsonl")
+    output_file = os.path.join(output_dir, "quality_evaluation_results1.jsonl")
     
     # 确保输出目录存在
     os.makedirs(output_dir, exist_ok=True)
@@ -326,10 +326,10 @@ if __name__ == "__main__":
         max_workers = 5
     elif choice == '3':
         limit = 50
-        max_workers = 30
+        max_workers = 100
     elif choice == '4':
         limit = None
-        max_workers = 30
+        max_workers = 100
     else:
         print("无效选择，使用测试模式")
         limit = 5

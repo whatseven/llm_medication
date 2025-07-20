@@ -96,8 +96,8 @@ def diagnose(user_input: str, vector_results: list, graph_data: dict, model_name
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_input}
         ],
-        "temperature": 0.1,
-        "max_tokens": 1000
+        "temperature": 0.5,
+        "max_tokens": 500
     }
 
     try:
