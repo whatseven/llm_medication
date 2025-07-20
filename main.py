@@ -357,8 +357,8 @@ def medical_diagnosis_pipeline(user_input: str, model_name: str = None, disease_
         from src.model.config import MODELS
         from openai import OpenAI
         
-        # 直接用R1进行诊断
-        model_config = MODELS["deepseek-r1"]
+        # 直接用普通模型进行诊断
+        model_config = MODELS["deepseek"]
         client = OpenAI(
             api_key=model_config["api_key"],
             base_url=model_config["base_url"]

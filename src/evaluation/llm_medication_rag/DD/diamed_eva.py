@@ -266,10 +266,10 @@ if __name__ == "__main__":
         max_workers = 5
     elif choice == '2':
         limit = 50
-        max_workers = 50
+        max_workers = 100
     elif choice == '3':
         limit = None
-        max_workers = 50
+        max_workers = 100
     else:
         print("无效选择，使用测试模式")
         limit = 10
