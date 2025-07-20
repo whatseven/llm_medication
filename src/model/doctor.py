@@ -45,7 +45,7 @@ def load_disease_list(file_path: str = None) -> str:
         print(f"读取疾病列表文件出错: {str(e)}")
         return ""
 
-def diagnose(user_input: str, vector_results: list, graph_data: dict, model_name: str = DEFAULT_MODEL, disease_list_file: str = None) -> str:
+def diagnose(user_input: str, vector_results: list, graph_data: dict, model_name: str = DEFAULT_MODEL, disease_list_file: str = None, diagnostic_suggestions: dict = None) -> str:
     """
     进行最终医疗诊断
     
@@ -55,6 +55,7 @@ def diagnose(user_input: str, vector_results: list, graph_data: dict, model_name
         graph_data: 图数据库查询的详细医学资料
         model_name: 使用的模型名称
         disease_list_file: 疾病列表文件路径，可选
+        diagnostic_suggestions: 诊断建议，可选
     
     Returns:
         诊断结果文本
@@ -76,10 +77,26 @@ def diagnose(user_input: str, vector_results: list, graph_data: dict, model_name
     # 加载疾病列表
     disease_list_info = load_disease_list(disease_list_file)
     
+    # 格式化诊断建议
+    suggestions_info = ""
+    if diagnostic_suggestions:
+        recommended_diseases = diagnostic_suggestions.get("recommended_diseases", [])
+        reason = diagnostic_suggestions.get("reason", "")
+        if recommended_diseases:
+            suggestions_info = f"推荐疾病：{', '.join(recommended_diseases)}\n"
+            if reason:
+                suggestions_info += f"建议原因：{reason}\n"
+            suggestions_info += "请参考以上建议进行诊断。"
+        else:
+            suggestions_info = "暂无特殊建议"
+    else:
+        suggestions_info = "暂无特殊建议"
+    
     # 手动替换占位符来避免与JSON格式冲突
     system_prompt = DOCTOR_SYSTEM_PROMPT.replace("{vector_results}", vector_info)
     system_prompt = system_prompt.replace("{disease_list}", disease_list_info)
     system_prompt = system_prompt.replace("{graph_data}", graph_info)
+    system_prompt = system_prompt.replace("{diagnostic_suggestions}", suggestions_info)
     
     # 获取模型配置
     model_config = MODELS.get(model_name, MODELS[DEFAULT_MODEL])

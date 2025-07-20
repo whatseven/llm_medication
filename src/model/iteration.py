@@ -1,9 +1,35 @@
 import re
 import os
+import json
 from openai import OpenAI
 from src.model.config import MODELS
 from src.model.prompt import R1_EXPERT_EVALUATION_PROMPT
 
+def extract_diagnostic_suggestions(content: str) -> dict:
+    """
+    从R1专家响应中提取诊断建议
+    
+    Args:
+        content: R1专家的完整响应文本
+    
+    Returns:
+        诊断建议字典
+    """
+    try:
+        # 查找<diagnostic_suggestions>标签
+        pattern = r'<diagnostic_suggestions>\s*(\{.*?\})\s*</diagnostic_suggestions>'
+        match = re.search(pattern, content, re.DOTALL)
+        
+        if match:
+            json_str = match.group(1)
+            suggestions = json.loads(json_str)
+            return suggestions
+        
+        return None
+        
+    except Exception as e:
+        print(f"提取诊断建议时出错: {str(e)}")
+        return None
 
 def iterative_diagnose(symptoms, vector_results, graph_data, doctor_diagnosis, disease_list_file=None):
     """
@@ -18,7 +44,8 @@ def iterative_diagnose(symptoms, vector_results, graph_data, doctor_diagnosis, d
         
     Returns:
         dict: {
-            "is_correct": bool
+            "is_correct": bool,
+            "diagnostic_suggestions": dict (仅在is_correct=False时存在)
         }
     """
     try:
@@ -84,7 +111,18 @@ def iterative_diagnose(symptoms, vector_results, graph_data, doctor_diagnosis, d
             if '1' in review_content:
                 return {"is_correct": True}
             elif '0' in review_content:
-                return {"is_correct": False}
+                # 诊断被驳回，提取建议信息
+                diagnostic_suggestions = extract_diagnostic_suggestions(content)
+                result = {"is_correct": False}
+                if diagnostic_suggestions:
+                    result["diagnostic_suggestions"] = diagnostic_suggestions
+                else:
+                    # 如果没有提取到建议，提供默认建议
+                    result["diagnostic_suggestions"] = {
+                        "recommended_diseases": ["建议重新评估症状"],
+                        "reason": "现有诊断不够准确，需要重新分析"
+                    }
+                return result
             else:
                 # 如果无法解析，默认认为正确
                 return {"is_correct": True}

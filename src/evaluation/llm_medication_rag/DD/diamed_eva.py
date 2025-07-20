@@ -246,7 +246,7 @@ if __name__ == "__main__":
     # 配置文件路径
     input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/DiaMed/test.txt"
     output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/DiaMed"
-    output_file = os.path.join(output_dir, "evaluation_results1.jsonl")
+    output_file = os.path.join(output_dir, "evaluation_results3.jsonl")
     
     # 疾病列表文件路径配置（可选）
     # 设置为 None 表示不使用疾病列表约束
@@ -266,10 +266,10 @@ if __name__ == "__main__":
         max_workers = 5
     elif choice == '2':
         limit = 50
-        max_workers = 100
+        max_workers = 50
     elif choice == '3':
         limit = None
-        max_workers = 100
+        max_workers = 50
     else:
         print("无效选择，使用测试模式")
         limit = 10
