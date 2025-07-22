@@ -261,7 +261,7 @@ if __name__ == "__main__":
     
     # 输出目录和文件名
     output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/RJUACN"
-    output_file = os.path.join(output_dir, "vanilla_rag_rjua_evaluation_results3.jsonl")
+    output_file = os.path.join(output_dir, "vanilla_rag_rjua_evaluation_results4.jsonl")
     
     # 疾病列表文件路径配置（可选）
     # 设置为 None 表示不使用疾病列表约束

@@ -258,7 +258,7 @@ def medical_diagnosis_pipeline(user_input: str, model_name: str = None, disease_
     Returns:
         str: 最终诊断结果
     """
-    max_retries = 3
+    max_retries = 1
     top_k_values = [5, 7, 10]  # 重试时的top_k值
     rejection_count = 0  # 记录被驳回次数
     previous_suggestions = None  # 保存上一轮的诊断建议

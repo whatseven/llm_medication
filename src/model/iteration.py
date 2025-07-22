@@ -96,7 +96,7 @@ def iterative_diagnose(symptoms, vector_results, graph_data, doctor_diagnosis, d
                 {"role": "system", "content": "你是一位资深医疗专家，需要进行推理分析诊断是否正确。"},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.7,  # 低温度确保稳定性
+            temperature=0.5,  # 低温度确保稳定性
             stream=False
         )
         

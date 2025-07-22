@@ -7,9 +7,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any
 
 # 添加项目根目录到系统路径
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
+sys.path.insert(0, project_root)
 
-from main import medical_diagnosis_pipeline
+from main_textgrad import medical_diagnosis_pipeline
 
 def load_dataset(file_path: str) -> List[Dict[str, Any]]:
     """加载RJUA数据集"""
@@ -111,6 +112,9 @@ def evaluate_dataset(input_file: str, output_file: str, max_workers: int = 100,
     # 并发处理
     start_time = time.time()
     results = []
+    completed_count = 0
+    total_count = len(dataset)
+    
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_item = {
             executor.submit(process_single_item, item, disease_list_file, use_context): item 
@@ -119,6 +123,18 @@ def evaluate_dataset(input_file: str, output_file: str, max_workers: int = 100,
         
         for future in as_completed(future_to_item):
             results.append(future.result())
+            completed_count += 1
+            
+            # 每完成5个样本显示一次进度
+            if completed_count % 5 == 0 or completed_count == total_count:
+                elapsed_time = time.time() - start_time
+                avg_time_per_item = elapsed_time / completed_count
+                remaining_items = total_count - completed_count
+                estimated_remaining_time = avg_time_per_item * remaining_items
+                
+                print(f"📊 进度: {completed_count}/{total_count} ({completed_count/total_count*100:.1f}%)")
+                print(f"⏱️  已用时: {elapsed_time/60:.1f}分钟, 预计剩余: {estimated_remaining_time/60:.1f}分钟")
+                print("=" * 50)
     
     # 排序并统计
     results.sort(key=lambda x: int(x['id']))
@@ -184,7 +200,7 @@ if __name__ == "__main__":
     
     # 输出目录和文件名
     output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/RJUACN"
-    output_file = os.path.join(output_dir, "evaluation_results3.jsonl")
+    output_file = os.path.join(output_dir, "evaluation_results4.jsonl")
     
     # 疾病列表文件路径配置（可选）
     # 设置为 None 表示不使用疾病列表约束
@@ -205,17 +221,24 @@ if __name__ == "__main__":
     
     if choice == '1':
         limit = 10
-        max_workers = 5
+        max_workers = 2  # 减少并发数
+        print("⚠️  测试模式：每个样本需约11次LLM调用，预计需要2-5分钟")
     elif choice == '2':
         limit = 50
-        max_workers = 10
+        max_workers = 2  # 减少并发数
+        print("⚠️  小批量模式：预计需要15-30分钟")
     elif choice == '3':
         limit = None
-        max_workers = 10
+        max_workers = 10  # 进一步减少并发数，因为每个样本调用更多
+        print("⚠️  全量评估：213个样本，预计需要1.5-3小时！")
+        confirm = input("确认要进行全量评估吗？(y/N): ").strip().lower()
+        if confirm != 'y':
+            print("已取消评估")
+            exit(0)
     else:
         print("无效选择，使用测试模式")
         limit = 10
-        max_workers = 3
+        max_workers = 2
     
     # 执行评估
     results = evaluate_dataset(input_file, output_file, max_workers, limit, disease_list_file, use_context)

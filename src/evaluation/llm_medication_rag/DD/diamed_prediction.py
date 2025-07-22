@@ -301,9 +301,9 @@ def analyze_evaluation_results(results: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 if __name__ == "__main__":
     # 配置文件路径
-    input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/DiaMed/evaluation_results3.jsonl"
+    input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/DiaMed/evaluation_results4.jsonl"
     output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/DiaMed"
-    output_file = os.path.join(output_dir, "quality_evaluation_results3.jsonl")
+    output_file = os.path.join(output_dir, "quality_evaluation_results4.jsonl")
     
     # 确保输出目录存在
     os.makedirs(output_dir, exist_ok=True)

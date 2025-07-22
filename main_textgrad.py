@@ -1,8 +1,17 @@
 import sys
 import os
 
-# 添加src路径到系统路径
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+# 获取当前文件所在目录的绝对路径
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# 添加src路径到系统路径  
+src_path = os.path.join(current_dir, 'src')
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
+    
+# 同时添加当前目录到路径，确保模块可以被找到
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
 
 from src.model.rewrite_query import process_dialog_symptoms
 from src.search.milvus_search import search_similar_diseases
@@ -308,6 +317,78 @@ def medical_diagnosis_pipeline_single(user_input: str, model_name: str = None, d
             "success": False
         }
 
+def ensure_diagnosis_format(diagnosis_text: str) -> str:
+    """
+    确保诊断结果符合标准格式
+    
+    Args:
+        diagnosis_text: 原始诊断文本
+        
+    Returns:
+        格式化的诊断字符串
+    """
+    if not diagnosis_text or not diagnosis_text.strip():
+        return '<final_diagnosis>{"diseases": ["未知疾病"]}</final_diagnosis>'
+    
+    # 如果已经有正确格式，直接返回
+    if '<final_diagnosis>' in diagnosis_text and '</final_diagnosis>' in diagnosis_text:
+        return diagnosis_text
+    
+    # 如果包含错误信息，包装成标准格式
+    if "出错" in diagnosis_text or "失败" in diagnosis_text or "错误" in diagnosis_text:
+        return f'<final_diagnosis>{{"diseases": ["诊断失败"]}}</final_diagnosis>'
+    
+    # 清理和提取疾病名称
+    clean_text = diagnosis_text.strip()
+    
+    # 尝试从各种格式中提取疾病名称
+    import re
+    import json
+    
+    # 先尝试提取现有的final_diagnosis格式
+    pattern = r'<final_diagnosis>\s*(\{.*?\})\s*</final_diagnosis>'
+    match = re.search(pattern, clean_text, re.DOTALL)
+    if match:
+        try:
+            diagnosis_data = json.loads(match.group(1))
+            diseases = diagnosis_data.get('diseases', [])
+            if diseases:
+                if isinstance(diseases, list):
+                    return f'<final_diagnosis>{{"diseases": {json.dumps(diseases, ensure_ascii=False)}}}</final_diagnosis>'
+                else:
+                    return f'<final_diagnosis>{{"diseases": ["{diseases}"]}}</final_diagnosis>'
+        except:
+            pass
+    
+    # 清理常见前缀
+    prefixes_to_remove = [
+        "优化后的诊断：", "诊断：", "疾病：", "最终诊断：", 
+        "建议诊断：", "推荐诊断：", "诊断结果：", "答案："
+    ]
+    
+    for prefix in prefixes_to_remove:
+        if clean_text.startswith(prefix):
+            clean_text = clean_text[len(prefix):].strip()
+    
+    # 移除引号和标点
+    clean_text = clean_text.strip('"\'""''()[]{}（）【】')
+    
+    # 如果包含多个疾病，取第一个
+    if '、' in clean_text:
+        clean_text = clean_text.split('、')[0]
+    elif '，' in clean_text:
+        clean_text = clean_text.split('，')[0]
+    elif ',' in clean_text:
+        clean_text = clean_text.split(',')[0]
+    
+    clean_text = clean_text.strip()
+    
+    if not clean_text:
+        clean_text = "未知疾病"
+    
+    # 包装成标准格式
+    return f'<final_diagnosis>{{"diseases": ["{clean_text}"]}}</final_diagnosis>'
+
 def medical_diagnosis_pipeline(user_input: str, model_name: str = None, disease_list_file: str = None, silent_mode: bool = False) -> str:
     """
     带有TextGrad优化的完整医疗诊断流程
@@ -341,7 +422,7 @@ def medical_diagnosis_pipeline(user_input: str, model_name: str = None, disease_
         if not base_result["success"]:
             if not silent_mode:
                 print("❌ 基础诊断失败")
-            return base_result["diagnosis"]
+            return ensure_diagnosis_format(base_result["diagnosis"])
         
         if not silent_mode:
             print(f"✅ 获得基础诊断: {base_result['diagnosis']}")
@@ -352,7 +433,7 @@ def medical_diagnosis_pipeline(user_input: str, model_name: str = None, disease_
         
         optimizer = LLMMedTextGrad(
             model_name="deepseek",
-            num_iterations=3,
+            num_iterations=1,  # 默认1次迭代
             verbose=not silent_mode
         )
         
@@ -367,18 +448,19 @@ def medical_diagnosis_pipeline(user_input: str, model_name: str = None, disease_
         if textgrad_result["is_correct"]:
             if not silent_mode:
                 print(f"✅ TextGrad确认原诊断质量良好")
-            return base_result["diagnosis"]
+            return ensure_diagnosis_format(base_result["diagnosis"])
         else:
             optimized_diagnosis = textgrad_result.get("optimized_diagnosis", base_result["diagnosis"])
             if not silent_mode:
                 print(f"🎯 TextGrad优化完成: {optimized_diagnosis}")
-            return optimized_diagnosis
+            
+            return ensure_diagnosis_format(optimized_diagnosis)
             
     except Exception as e:
         error_msg = f"TextGrad诊断流程出错: {str(e)}"
         if not silent_mode:
             print(f"❌ {error_msg}")
-        return error_msg
+        return ensure_diagnosis_format(error_msg)
 
 if __name__ == "__main__":
     # 示例调用
