@@ -35,7 +35,7 @@ def vanilla_rag_pipeline(user_input: str, model_name: str = None, disease_list_f
         
         # 步骤2: 向量搜索
         print("\n步骤2: 向量搜索...")
-        milvus_results = search_similar_diseases(symptoms_text, top_k=5)
+        milvus_results = search_similar_diseases(symptoms_text, top_k=3)
         print(f"搜索到 {len(milvus_results)} 个疾病")
         
         if not milvus_results:

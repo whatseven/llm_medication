@@ -13,7 +13,7 @@ def search_similar_diseases(query: str, top_k: int = 5) -> List[Dict[str, Any]]:
     
     Args:
         query: 用户查询文本
-        top_k: 返回前k个结果，默认3
+        top_k: 返回前k个结果，默认5
         
     Returns:
         List[Dict]: 包含疾病信息的字典列表，不包含向量字段

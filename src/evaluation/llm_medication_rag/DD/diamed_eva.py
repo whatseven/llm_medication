@@ -245,8 +245,8 @@ def simple_accuracy_analysis(results: List[Dict[str, Any]]) -> Dict[str, Any]:
 if __name__ == "__main__":
     # 配置文件路径
     input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/DiaMed/test.txt"
-    output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/DiaMed"
-    output_file = os.path.join(output_dir, "evaluation_results4.jsonl")
+    output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/topk5_iteration_result"
+    output_file = os.path.join(output_dir, "diamed_evaluation_results_iteration3.jsonl")
     
     # 疾病列表文件路径配置（可选）
     # 设置为 None 表示不使用疾病列表约束

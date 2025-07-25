@@ -32,7 +32,7 @@ def search_diseases_by_symptoms(symptoms: List[str]) -> List[Dict[str, Any]]:
                matched_symptoms AS symptom,
                match_count
         ORDER BY match_count DESC
-        LIMIT 5
+        LIMIT 3
         """
         
         # 执行查询

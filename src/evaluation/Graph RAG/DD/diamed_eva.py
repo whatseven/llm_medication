@@ -253,7 +253,7 @@ if __name__ == "__main__":
     # 配置文件路径
     input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/DiaMed/test.txt"
     output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/DiaMed"
-    output_file = os.path.join(output_dir, "graph_rag_evaluation_results4.jsonl")
+    output_file = os.path.join(output_dir, "graph_rag_evaluation_results_top3.jsonl")
     
     # 疾病列表文件路径配置（可选）
     # 设置为 None 表示不使用疾病列表约束
