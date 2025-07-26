@@ -201,11 +201,11 @@ def analyze_evaluation_results(results: List[Dict[str, Any]]) -> Dict[str, Any]:
 if __name__ == "__main__":
     # ==================== 配置参数区域 ====================
     # 输入评估结果文件路径
-    input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/RJUACN/evaluation_results_iteration3.jsonl"
+    input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/simple_iteration_top5/rjua/llm_medication_simple_iteration/simple_iteration_top10/rjua_evaluation_results_rerank_top10.jsonl"
     
     # 输出目录和文件名
-    output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/RJUACN"
-    output_file = os.path.join(output_dir, "rjua_quality_evaluation_results_iteration3.jsonl")
+    output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/simple_iteration_top5/rjua/llm_medication_simple_iteration/simple_iteration_top10"
+    output_file = os.path.join(output_dir, "rjua_quality_evaluation_results_top10.jsonl")
     
     # 评估模型配置
     model_name = DEFAULT_MODEL  # 使用默认模型

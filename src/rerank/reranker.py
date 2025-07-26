@@ -61,3 +61,24 @@ def rerank_diseases(query_symptom, milvus_results):
     except Exception as e:
         print(f"Rerank API调用失败: {e}")
         return milvus_results  # 失败时返回原始结果
+
+def rerank_diseases_with_topk(query_symptom, milvus_results, top_k=None):
+    """
+    对Milvus检索结果进行重排序并支持top_k截断
+    
+    Args:
+        query_symptom: 大模型改写后的症状，如"腹痛"
+        milvus_results: Milvus返回的疾病列表
+        top_k: 返回前top_k个结果，None表示返回全部
+    
+    Returns:
+        重排序后的疾病列表，按相关度从高到低，截断到top_k个
+    """
+    # 调用原有的重排序函数
+    reranked_results = rerank_diseases(query_symptom, milvus_results)
+    
+    # 如果指定了top_k，则截断结果
+    if top_k is not None and len(reranked_results) > top_k:
+        return reranked_results[:top_k]
+    
+    return reranked_results

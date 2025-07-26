@@ -9,7 +9,7 @@ from typing import List, Dict, Any
 # 添加项目根目录到系统路径
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
 
-from main import medical_diagnosis_pipeline
+from main_simple_iteration import medical_diagnosis_pipeline
 
 def load_dataset(file_path: str) -> List[Dict[str, Any]]:
     """加载RJUA数据集"""

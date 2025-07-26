@@ -7,9 +7,16 @@ from typing import List, Dict, Any
 import re
 
 # 添加项目根目录到系统路径
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
+project_root = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..')
+sys.path.append(project_root)
 
-from Vanilla_RAG import vanilla_rag_pipeline
+# 导入graph_rag_diagnosis函数
+import importlib.util
+graph_rag_path = os.path.join(project_root, 'graph_rag copy 2.py')
+spec = importlib.util.spec_from_file_location("graph_rag_copy_2", graph_rag_path)
+graph_rag_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(graph_rag_module)
+graph_rag_diagnosis = graph_rag_module.graph_rag_diagnosis
 
 def load_dataset(file_path: str) -> List[Dict[str, Any]]:
     """
@@ -99,9 +106,9 @@ def process_single_item(item: Dict[str, Any], disease_list_file: str = None) -> 
         # 使用original_dialog
         dialog_text = preprocess_dialog(item['original_dialog'])
         
-        # 调用Vanilla RAG诊断流程，传入疾病列表文件
+        # 调用Graph RAG诊断流程，使用静默模式减少日志输出
         start_time = time.time()
-        diagnosis_result = vanilla_rag_pipeline(dialog_text, disease_list_file=disease_list_file)
+        diagnosis_result = graph_rag_diagnosis(dialog_text, disease_list_file=disease_list_file, silent_mode=True)
         end_time = time.time()
         
         # 提取疾病信息
@@ -145,7 +152,7 @@ def evaluate_dataset(input_file: str, output_file: str, max_workers: int = 50, l
         limit: 限制处理的数据条数，None表示处理全部
         disease_list_file: 疾病列表文件路径，可选
     """
-    print(f"开始评估数据集 (Vanilla RAG): {input_file}")
+    print(f"开始Graph RAG（含语义重排序）数据集评估: {input_file}")
     print(f"并发线程数: {max_workers}")
     
     if disease_list_file:
@@ -164,7 +171,7 @@ def evaluate_dataset(input_file: str, output_file: str, max_workers: int = 50, l
     print(f"总共 {len(dataset)} 条数据")
     
     # 并发处理
-    print("\n开始并发处理 (Vanilla RAG)...")
+    print("\n开始并发处理...")
     start_time = time.time()
     
     results = []
@@ -197,7 +204,7 @@ def evaluate_dataset(input_file: str, output_file: str, max_workers: int = 50, l
         for result in results:
             f.write(json.dumps(result, ensure_ascii=False) + '\n')
     
-    print("Vanilla RAG评估完成!")
+    print("Graph RAG（含语义重排序）评估完成!")
     return results
 
 def simple_accuracy_analysis(results: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -245,31 +252,30 @@ def simple_accuracy_analysis(results: List[Dict[str, Any]]) -> Dict[str, Any]:
 if __name__ == "__main__":
     # 配置文件路径
     input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/DiaMed/test.txt"
-    output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/simple_iteration/diamed/vanilla"
-    output_file = os.path.join(output_dir, "vanilla_rag_evaluation_results_top5.jsonl")
+    output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/simple_iteration_top5/diamed/graph_rerank/top10"
+    output_file = os.path.join(output_dir, "graph_rag_rerank_top10.jsonl")
     
     # 疾病列表文件路径配置（可选）
     # 设置为 None 表示不使用疾病列表约束
     # 设置为文件路径表示使用疾病列表约束
-    disease_list_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/DiaMed/disease.txt"  # 默认不使用疾病列表约束
-    # disease_list_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/DiaMed/disease.txt"  # 使用疾病列表约束
+    disease_list_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/DiaMed/disease.txt"
     
     # 确保输出目录存在
     os.makedirs(output_dir, exist_ok=True)
     
     # 运行评估（测试模式：只处理前10条）
-    print("=== DiaMed数据集评估 (Vanilla RAG) ===")
+    print("=== DiaMed数据集Graph RAG（含语义重排序）评估 ===")
     choice = input("选择模式:\n1. 测试模式(前10条)\n2. 小批量(前50条)\n3. 全量评估\n请选择(1/2/3): ").strip()
     
     if choice == '1':
         limit = 10
-        max_workers = 3
+        max_workers = 5
     elif choice == '2':
-        limit = 30
-        max_workers =30
+        limit = 50
+        max_workers = 50
     elif choice == '3':
         limit = None
-        max_workers = 30
+        max_workers = 50
     else:
         print("无效选择，使用测试模式")
         limit = 10
@@ -279,7 +285,7 @@ if __name__ == "__main__":
     results = evaluate_dataset(input_file, output_file, max_workers, limit, disease_list_file)
     
     # 简单分析
-    print("\n=== 简单准确率分析 (Vanilla RAG) ===")
+    print("\n=== 简单准确率分析 ===")
     analysis = simple_accuracy_analysis(results)
     for key, value in analysis.items():
         print(f"{key}: {value}")

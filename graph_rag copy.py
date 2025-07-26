@@ -1,12 +1,11 @@
 import sys
 import os
 
-# 添加src路径到系统路径
+# 添加src路径到系统路径,没有设置相似度
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 from src.model.rewrite_query import process_dialog_symptoms
 from src.search.kg_search import search_diseases_by_symptoms
-from src.model.rewrite_disease_cause import rewrite_disease_cause
 from src.model.doctor import diagnose
 
 def graph_rag_diagnosis(user_input: str, model_name: str = None, disease_list_file: str = None, silent_mode: bool = False) -> str:
@@ -47,9 +46,9 @@ def graph_rag_diagnosis(user_input: str, model_name: str = None, disease_list_fi
         if not silent_mode:
             print(f"图数据库搜索到 {len(kg_results)} 个相关疾病")
         
-        # 步骤3: 病因简化处理
+        # 步骤3: 图数据格式化（不进行病因缩写）
         if not silent_mode:
-            print("\n步骤3: 病因简化处理...")
+            print("\n步骤3: 图数据格式化...")
         processed_diseases = []
         graph_data = {}
         
@@ -60,32 +59,20 @@ def graph_rag_diagnosis(user_input: str, model_name: str = None, disease_list_fi
                 if not silent_mode:
                     print(f"处理疾病: {disease_name}")
                 
-                # 简化病因
-                if disease['cause']:
-                    simplified_cause = rewrite_disease_cause(
-                        raw_cause=disease['cause'],
-                        disease_name=disease_name,
-                        model_name=model_name
-                    )
-                    if simplified_cause:
-                        disease['cause'] = simplified_cause
-                        if not silent_mode:
-                            print(f"✓ {disease_name} 病因简化完成")
-                    else:
-                        if not silent_mode:
-                            print(f"✗ {disease_name} 病因简化失败，保留原始病因")
-                
-                # 转换为doctor期望的格式
+                # 转换为doctor期望的格式（不包含similarity_score）
                 formatted_disease = {
                     'name': disease['name'],
                     'desc': disease['desc'] or '',
-                    'symptom': str(disease['symptom']) if disease['symptom'] else '[]',
-                    'similarity_score': 0.9  # 图数据库匹配度设为固定高值
+                    'symptom': str(disease['symptom']) if disease['symptom'] else '[]'
                 }
                 processed_diseases.append(formatted_disease)
                 
-                # 构建graph_data格式
+                # 构建graph_data格式（使用原始病因，不进行缩写）
                 graph_info = f"疾病名称：{disease_name}\n\n"
+                if disease['desc']:
+                    graph_info += f"疾病描述：{disease['desc']}\n\n"
+                if disease['symptom']:
+                    graph_info += f"相关症状：{disease['symptom']}\n\n"
                 if disease['cause']:
                     graph_info += f"疾病病因：{disease['cause']}\n\n"
                 if disease['cure_department']:

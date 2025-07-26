@@ -7,9 +7,16 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any
 
 # 添加项目根目录到系统路径
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
+project_root = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..')
+sys.path.insert(0, project_root)
 
-from main import medical_diagnosis_pipeline
+# 使用importlib导入包含空格的文件
+import importlib.util
+main_file_path = os.path.join(project_root, 'main_rerank copy_simple_iteration.py')
+spec = importlib.util.spec_from_file_location("main_rerank_copy_simple_iteration", main_file_path)
+main_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(main_module)
+medical_diagnosis_pipeline = main_module.medical_diagnosis_pipeline
 
 def load_dataset(file_path: str) -> List[Dict[str, Any]]:
     """加载RJUA数据集"""
@@ -183,8 +190,8 @@ if __name__ == "__main__":
     input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/RJUA_CN/RJUA_test.json"
     
     # 输出目录和文件名
-    output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/simple_iteration/rjua/llm_medication"
-    output_file = os.path.join(output_dir, "evaluation_results_top5.jsonl")
+    output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/simple_iteration_top5/rjua/llm_medication_simple_iteration/simple_iteration_top10"
+    output_file = os.path.join(output_dir, "rjua_evaluation_results_rerank_top10.jsonl")
     
     # 疾病列表文件路径配置（可选）
     # 设置为 None 表示不使用疾病列表约束
@@ -200,7 +207,7 @@ if __name__ == "__main__":
     os.makedirs(output_dir, exist_ok=True)
     
     # 运行评估
-    print("=== RJUA中文数据集评估 ===")
+    print("=== RJUA中文数据集评估（重排序简化迭代版本）===")
     choice = input("选择模式:\n1. 测试模式(前10条)\n2. 小批量(前50条)\n3. 全量评估\n请选择(1/2/3): ").strip()
     
     if choice == '1':

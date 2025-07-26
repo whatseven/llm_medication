@@ -6,7 +6,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 from src.model.rewrite_query import process_dialog_symptoms
 from src.search.milvus_search import search_similar_diseases
-from src.rerank.reranker import rerank_diseases
+from src.rerank.reranker import rerank_diseases_with_topk
 from src.model.analyzer import analyze_diagnosis
 from src.search.neo4j_diagnose import neo4j_diagnosis_search
 from src.model.doctor import diagnose
@@ -106,9 +106,9 @@ def process_graph_data_with_simplified_cause(disease_name: str, neo4j_text: str,
         print(f"处理疾病 {disease_name} 的图数据库信息出错: {str(e)}，跳过该疾病")
         return ""
 
-def medical_diagnosis_pipeline_single(user_input: str, model_name: str = None, disease_list_file: str = None, top_k: int = 3, silent_mode: bool = False, diagnostic_suggestions: dict = None) -> dict:
+def medical_diagnosis_pipeline_single(user_input: str, model_name: str = None, disease_list_file: str = None, top_k: int = 10, silent_mode: bool = False, diagnostic_suggestions: dict = None) -> dict:
     """
-    单次医疗诊断流程
+    单次医疗诊断流程（改进版：向量搜索top10，重排序后取top3）
     
     Args:
         user_input (str): 用户输入的症状描述
@@ -136,7 +136,7 @@ def medical_diagnosis_pipeline_single(user_input: str, model_name: str = None, d
         # 将症状列表转换为字符串用于向量搜索
         symptoms_text = ' '.join(symptoms) if symptoms else user_input
         
-        # 步骤2: 向量搜索
+        # 步骤2: 向量搜索（扩大搜索范围）
         if not silent_mode:
             print(f"\n步骤2: 向量搜索(top_k={top_k})...")
         milvus_results = search_similar_diseases(symptoms_text, top_k=top_k)
@@ -152,12 +152,13 @@ def medical_diagnosis_pipeline_single(user_input: str, model_name: str = None, d
                 "success": False
             }
         
-        # 步骤3: 重排序
+        # 步骤3: 重排序并截断到top3
+        rerank_top_k = 5  # 重排序后只保留前3个
         if not silent_mode:
-            print("\n步骤3: 重排序...")
-        reranked_results = rerank_diseases(symptoms_text, milvus_results)
+            print(f"\n步骤3: 重排序并截断到top{rerank_top_k}...")
+        reranked_results = rerank_diseases_with_topk(symptoms_text, milvus_results, top_k=rerank_top_k)
         if not silent_mode:
-            print(f"重排序完成，共 {len(reranked_results)} 个结果")
+            print(f"重排序完成，从{len(milvus_results)}个筛选到{len(reranked_results)}个结果")
         
         # 步骤4: 分析是否需要更多信息
         if not silent_mode:
@@ -247,7 +248,7 @@ def medical_diagnosis_pipeline_single(user_input: str, model_name: str = None, d
 
 def medical_diagnosis_pipeline(user_input: str, model_name: str = None, disease_list_file: str = None, silent_mode: bool = False) -> str:
     """
-    带有R1专家评估和重试机制的完整医疗诊断流程
+    带有R1专家评估和重试机制的完整医疗诊断流程（改进版：向量搜索top10，重排序后取top3）
     
     Args:
         user_input (str): 用户输入的症状描述
@@ -258,19 +259,19 @@ def medical_diagnosis_pipeline(user_input: str, model_name: str = None, disease_
     Returns:
         str: 最终诊断结果
     """
-    max_retries = 2
-    top_k_values = [3, 5, 5]  # 重试时的top_k值
+    max_retries = 3
+    top_k_values = [10, 10, 10]  # 重试时的向量搜索top_k值（对应重排序后的3个结果）
     rejection_count = 0  # 记录被驳回次数
     previous_suggestions = None  # 保存上一轮的诊断建议
     
     if not silent_mode:
-        print("=== 开始带有R1专家评估的医疗诊断流程 ===")
+        print("=== 开始带有R1专家评估的医疗诊断流程（改进重排序版本）===")
     
     for attempt in range(max_retries):
         current_top_k = top_k_values[min(attempt, len(top_k_values) - 1)]
         if not silent_mode:
             print(f"\n{'='*60}")
-            print(f"第 {attempt + 1} 次诊断尝试 (top_k={current_top_k})")
+            print(f"第 {attempt + 1} 次诊断尝试 (向量搜索top_k={current_top_k}，重排序后top_3)")
             if previous_suggestions and not silent_mode:
                 print(f"使用上轮建议：{previous_suggestions.get('recommended_diseases', [])}")
             print(f"{'='*60}")

@@ -125,7 +125,7 @@ def process_single_item(item: Dict[str, Any], disease_list_file: str = None, use
             'use_context': use_context
         }
 
-def evaluate_dataset(input_file: str, output_file: str, max_workers: int = 50, 
+def evaluate_dataset(input_file: str, output_file: str, max_workers: int = 100, 
                     limit: int = None, disease_list_file: str = None, use_context: bool = False):
     """
     评估整个RJUA数据集
@@ -260,8 +260,8 @@ if __name__ == "__main__":
     input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/RJUA_CN/RJUA_test.json"
     
     # 输出目录和文件名
-    output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/RJUACN"
-    output_file = os.path.join(output_dir, "vanilla_rag_rjua_evaluation_results_top3.jsonl")
+    output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/simple_iteration/rjua/vanilla"
+    output_file = os.path.join(output_dir, "vanilla_rag_rjua_evaluation_results_top5.jsonl")
     
     # 疾病列表文件路径配置（可选）
     # 设置为 None 表示不使用疾病列表约束
