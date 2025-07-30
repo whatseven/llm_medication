@@ -267,7 +267,7 @@ if __name__ == "__main__":
     input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/RJUA_CN/RJUA_test.json"
     
     # 输出目录和文件名
-    output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/simple_iteration_top5/rjua/graph_rerank/top10"
+    output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/final_result/rjua/graph_rerank/双向量字段"
     output_file = os.path.join(output_dir, "graph_rag_rjua_rerank_evaluation_results_top10.jsonl")
     
     # 疾病列表文件路径配置（可选）

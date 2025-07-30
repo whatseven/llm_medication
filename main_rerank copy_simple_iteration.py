@@ -1,11 +1,11 @@
 import sys
 import os
 
-# 添加src路径到系统路径，简化迭代，不用每次重新走流程
+# 添加src路径到系统路径，简化迭代，不用每次重新走流程，返回完整向量库信息，不根据analyzer进行过滤
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 from src.model.rewrite_query import process_dialog_symptoms
-from src.search.milvus_search import search_similar_diseases
+from src.search.milvus_search_copy import search_similar_diseases
 from src.rerank.reranker import rerank_diseases_with_topk
 from src.model.analyzer import analyze_diagnosis
 from src.search.neo4j_diagnose import neo4j_diagnosis_search
@@ -204,15 +204,12 @@ def get_initial_diagnosis_data(user_input: str, model_name: str = None, top_k: i
                     if not silent_mode:
                         print(f"✗ 疾病 {disease_name} 未找到图数据库信息")
             
-            # 过滤向量库结果，只保留成功处理的目标疾病
-            successfully_processed_diseases = list(graph_data.keys())
-            filtered_results = []
-            for result in reranked_results:
-                if result.get('name') in successfully_processed_diseases:
-                    filtered_results.append(result)
+            # 保留所有向量库结果，不进行过滤
+            filtered_results = reranked_results
             
             if not silent_mode:
-                print(f"过滤后的向量库结果: {len(filtered_results)} 个")
+                print(f"保留所有向量库结果: {len(filtered_results)} 个")
+                print(f"获取图数据库信息的疾病: {len(graph_data)} 个")
             
         else:
             if not silent_mode:

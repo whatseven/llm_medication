@@ -12,8 +12,8 @@ sys.path.insert(0, project_root)
 
 # 使用importlib导入包含空格的文件
 import importlib.util
-main_file_path = os.path.join(project_root, 'main_rerank copy_simple_iteration.py')
-spec = importlib.util.spec_from_file_location("main_rerank_copy_simple_iteration", main_file_path)
+main_file_path = os.path.join(project_root, 'main_rerank copy_simple_iteration copy.py')
+spec = importlib.util.spec_from_file_location("main_rerank copy_simple_iteration copy", main_file_path)
 main_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(main_module)
 medical_diagnosis_pipeline = main_module.medical_diagnosis_pipeline
@@ -190,8 +190,8 @@ if __name__ == "__main__":
     input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/RJUA_CN/RJUA_test.json"
     
     # 输出目录和文件名
-    output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/simple_iteration_top5/rjua/llm_medication_simple_iteration/simple_iteration_top10"
-    output_file = os.path.join(output_dir, "rjua_evaluation_results_rerank_top10.jsonl")
+    output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/final_result/rjua/llm_medication_simple_iteration/双向量字段"
+    output_file = os.path.join(output_dir, "rjua_evaluation_without_rewrite.jsonl")
     
     # 疾病列表文件路径配置（可选）
     # 设置为 None 表示不使用疾病列表约束
@@ -218,7 +218,7 @@ if __name__ == "__main__":
         max_workers = 50
     elif choice == '3':
         limit = None
-        max_workers = 50
+        max_workers = 5
     else:
         print("无效选择，使用测试模式")
         limit = 10

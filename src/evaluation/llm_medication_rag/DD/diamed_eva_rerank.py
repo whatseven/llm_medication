@@ -12,8 +12,8 @@ sys.path.insert(0, project_root)
 
 # 使用importlib导入包含空格的文件
 import importlib.util
-main_file_path = os.path.join(project_root, 'main_rerank copy_simple_iteration.py')
-spec = importlib.util.spec_from_file_location("main_rerank_copy_simple_iteration", main_file_path)
+main_file_path = os.path.join(project_root, 'main_rerank copy_simple_iteration copy.py')
+spec = importlib.util.spec_from_file_location("main_rerank_copy_simple_iteration copy", main_file_path)
 main_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(main_module)
 medical_diagnosis_pipeline = main_module.medical_diagnosis_pipeline
@@ -252,8 +252,8 @@ def simple_accuracy_analysis(results: List[Dict[str, Any]]) -> Dict[str, Any]:
 if __name__ == "__main__":
     # 配置文件路径
     input_file = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/DiaMed/test.txt"
-    output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/simple_iteration_top5/diamed/llm_medication_simple_iteration/rerank_simple_iteration_top10"
-    output_file = os.path.join(output_dir, "diamed_evaluation_results_rerank_top10.jsonl")
+    output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/final_result/diamed/llm_medication/双向量字段"
+    output_file = os.path.join(output_dir, "diamed_evaluation_3.jsonl")
     
     # 疾病列表文件路径配置（可选）
     # 设置为 None 表示不使用疾病列表约束

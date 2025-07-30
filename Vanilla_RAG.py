@@ -5,7 +5,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 from src.model.rewrite_query import process_dialog_symptoms
-from src.search.milvus_search import search_similar_diseases
+from src.search.milvus_search_copy import search_similar_diseases
 from src.model.doctor import diagnose
 
 def vanilla_rag_pipeline(user_input: str, model_name: str = None, disease_list_file: str = None) -> str:
