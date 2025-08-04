@@ -8,7 +8,7 @@ from neo4j_search import neo4j_disease_search
 def test_neo4j_disease_search():
     """测试Neo4j疾病搜索功能"""
     test_diseases = [
-        "病毒性肝炎",
+        "Pulmonary Aspergillosis",
         "肺炎", 
         "高血压"
     ]

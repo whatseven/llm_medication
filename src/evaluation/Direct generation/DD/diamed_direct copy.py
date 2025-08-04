@@ -91,7 +91,7 @@ def call_llm_for_diagnosis(dialog_text: str, model_name: str = DEFAULT_MODEL) ->
                 {"role": "system", "content": DIRECT_DIAGNOSIS_PROMPT},
                 {"role": "user", "content": f"医患对话内容：\n{dialog_text}"}
             ],
-            temperature=0.7,
+            temperature=0.5,
             max_tokens=500,
             stream=False
         )

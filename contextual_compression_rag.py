@@ -55,10 +55,7 @@ def compress_search_results(user_input: str, search_results: list, model_name: s
 输出格式要求：
 将相关疾病的OID放在<relevant_oids>标签中，格式为JSON数组：
 <relevant_oids>["5bb578c3831b973a137e43b9", "5bb578fd831b973a137e5f5a"]</relevant_oids>
-
-注意：
-- 如果多个疾病都很相关，可以都选择
-- 避免返回空列表，除非真的没有任何相关疾病"""
+"""
     
     user_prompt = f"用户查询: {user_input}\n\n文档内容:\n{documents_text}"
     
@@ -69,7 +66,7 @@ def compress_search_results(user_input: str, search_results: list, model_name: s
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0.7
+            temperature=0.5
         )
         
         compressed_content = response.choices[0].message.content.strip()
@@ -133,7 +130,7 @@ def contextual_compression_rag_pipeline(user_input: str, model_name: str = None,
         
         # 步骤1: 向量搜索（获取更多结果）
         print("\n步骤1: 向量搜索（top-30）...")
-        milvus_results = search_similar_diseases(user_input, top_k=25)
+        milvus_results = search_similar_diseases(user_input, top_k=30)
         print(f"搜索到 {len(milvus_results)} 个疾病")
         
         if not milvus_results:

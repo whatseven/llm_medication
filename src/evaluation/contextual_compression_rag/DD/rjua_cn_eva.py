@@ -261,7 +261,7 @@ if __name__ == "__main__":
     
     # 输出目录和文件名
     output_dir = "/home/ubuntu/ZJQ/llm_medication/llm_medication/src/data/result/final_result/rjua/contextual_compression/双向量字段"
-    output_file = os.path.join(output_dir, "contextual_compression_rag_rjua_evaluation_results_top15.jsonl")
+    output_file = os.path.join(output_dir, "contextual_compression_rag_rjua_evaluation_results_top30.jsonl")
     
     # 疾病列表文件路径配置（可选）
     # 设置为 None 表示不使用疾病列表约束

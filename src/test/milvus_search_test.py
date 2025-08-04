@@ -4,7 +4,7 @@ import json
 
 # 添加search模块路径
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'search'))
-from milvus_search import search_similar_diseases
+from milvus_search_copy import search_similar_diseases
 
 def test_search():
     """测试Milvus检索功能"""

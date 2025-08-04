@@ -16,7 +16,7 @@ class MilvusInserter:
         self.port = port
         self.api_token = "sk-uqdmjvjhiyggiznhihznibdgsnpjdwdscqfqrywpgolismns"
         self.database_name = "llm_medication"
-        self.collection_name = "medication"
+        self.collection_name = "medication"  # 修改collection名称
         self.partition_name = "knowledge_base"
         self.dimension = 4096
         self.batch_size = 20
@@ -44,12 +44,13 @@ class MilvusInserter:
         fields = [
             FieldSchema(name="oid", dtype=DataType.VARCHAR, max_length=50, is_primary=True),
             FieldSchema(name="name", dtype=DataType.VARCHAR, max_length=500),
-            FieldSchema(name="desc", dtype=DataType.VARCHAR, max_length=30000),
+            FieldSchema(name="desc", dtype=DataType.VARCHAR, max_length=30000),  # 原始desc数据
             FieldSchema(name="symptom", dtype=DataType.VARCHAR, max_length=5000),  # 原始症状数组的JSON字符串
-            FieldSchema(name="symptom_vector", dtype=DataType.FLOAT_VECTOR, dim=self.dimension)
+            FieldSchema(name="symptom_vector", dtype=DataType.FLOAT_VECTOR, dim=self.dimension),  # symptom向量
+            FieldSchema(name="desc_vector", dtype=DataType.FLOAT_VECTOR, dim=self.dimension)  # desc向量
         ]
         
-        schema = CollectionSchema(fields, "医疗知识库")
+        schema = CollectionSchema(fields, "医疗知识库 - 支持symptom和desc双向量检索")
         return schema
         
     def create_collection(self):
@@ -84,6 +85,18 @@ class MilvusInserter:
             return [0.0] * self.dimension
             
         return vector
+
+    def vectorize_desc(self, desc_text):
+        """将描述文本转换为向量"""
+        if not desc_text or not desc_text.strip():
+            return [0.0] * self.dimension
+            
+        vector = get_embedding(desc_text, self.api_token)
+        
+        if not vector or len(vector) != self.dimension:
+            return [0.0] * self.dimension
+            
+        return vector
         
     def truncate_text(self, text, max_length):
         """截断文本到指定长度"""
@@ -102,17 +115,30 @@ class MilvusInserter:
             symptoms = record.get("symptom", [])
             symptom_vector = self.vectorize_symptoms(symptoms)
             
-            # 如果向量化失败，记录oid
-            if symptom_vector == [0.0] * self.dimension and symptoms:
-                self.failed_oids.append(oid)
+            # 向量化描述
+            desc_text = record.get("desc", "")
+            desc_vector = self.vectorize_desc(desc_text)
+            
+            # 检查向量化是否失败
+            symptom_failed = (symptom_vector == [0.0] * self.dimension and symptoms)
+            desc_failed = (desc_vector == [0.0] * self.dimension and desc_text.strip())
+            
+            # 如果任一向量化失败，记录oid
+            if symptom_failed or desc_failed:
+                self.failed_oids.append({
+                    "oid": oid,
+                    "symptom_failed": symptom_failed,
+                    "desc_failed": desc_failed
+                })
                 
-            # 准备数据（只保存需要的字段）
+            # 准备数据（包含所有字段）
             processed_record = {
                 "oid": oid,
                 "name": self.truncate_text(record.get("name", ""), 500),
-                "desc": self.truncate_text(record.get("desc", ""), 30000),
+                "desc": self.truncate_text(desc_text, 30000),  # 保存原始desc数据
                 "symptom": self.truncate_text(json.dumps(symptoms, ensure_ascii=False), 5000),  # 保存原始症状数组
-                "symptom_vector": symptom_vector
+                "symptom_vector": symptom_vector,  # symptom向量
+                "desc_vector": desc_vector  # desc向量
             }
             
             return processed_record
@@ -134,9 +160,9 @@ class MilvusInserter:
         if not batch_data:
             return
             
-        # 组织数据为列格式
+        # 组织数据为列格式（包含新的desc_vector字段）
         insert_data = []
-        for field in ["oid", "name", "desc", "symptom", "symptom_vector"]:
+        for field in ["oid", "name", "desc", "symptom", "symptom_vector", "desc_vector"]:
             insert_data.append([record[field] for record in batch_data])
             
         collection.insert(insert_data, partition_name=self.partition_name)
@@ -158,6 +184,7 @@ class MilvusInserter:
             
             # 分批处理数据
             print(f"开始处理数据，批量大小: {self.batch_size}")
+            print("将同时向量化symptom和desc字段...")
             batches = [raw_data[i:i+self.batch_size] for i in range(0, len(raw_data), self.batch_size)]
             
             processed_count = 0
@@ -178,14 +205,17 @@ class MilvusInserter:
                 # 避免API调用过于频繁
                 time.sleep(0.5)
                 
-            # 创建索引
-            print("正在创建向量索引...")
+            # 创建向量索引（为两个向量字段都创建索引）
+            print("正在为symptom_vector创建向量索引...")
             index_params = {
                 "metric_type": "COSINE",
                 "index_type": "IVF_FLAT",
                 "params": {"nlist": 128}
             }
             collection.create_index("symptom_vector", index_params)
+            
+            print("正在为desc_vector创建向量索引...")
+            collection.create_index("desc_vector", index_params)
             
             # 加载Collection
             collection.load()
@@ -196,7 +226,18 @@ class MilvusInserter:
             print(f"向量化失败的记录数: {len(self.failed_oids)}")
             
             if self.failed_oids:
-                print(f"向量化失败的OID列表: {self.failed_oids[:10]}...")  # 只显示前10个
+                print(f"向量化失败的详情（前10个）:")
+                for i, failed_info in enumerate(self.failed_oids[:10]):
+                    oid = failed_info["oid"]
+                    failures = []
+                    if failed_info["symptom_failed"]:
+                        failures.append("symptom")
+                    if failed_info["desc_failed"]:
+                        failures.append("desc")
+                    print(f"  {i+1}. OID: {oid}, 失败字段: {', '.join(failures)}")
+                
+                if len(self.failed_oids) > 10:
+                    print(f"  ... 还有 {len(self.failed_oids) - 10} 个失败记录")
                 
         except Exception as e:
             print(f"执行过程中发生错误: {e}")

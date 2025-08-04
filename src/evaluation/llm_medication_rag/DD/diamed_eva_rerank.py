@@ -13,7 +13,7 @@ sys.path.insert(0, project_root)
 # 使用importlib导入包含空格的文件
 import importlib.util
 main_file_path = os.path.join(project_root, 'main_rerank copy_simple_iteration copy.py')
-spec = importlib.util.spec_from_file_location("main_rerank_copy_simple_iteration copy", main_file_path)
+spec = importlib.util.spec_from_file_location("main_rerank copy_simple_iteration copy", main_file_path)
 main_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(main_module)
 medical_diagnosis_pipeline = main_module.medical_diagnosis_pipeline
